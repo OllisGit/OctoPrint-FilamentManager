@@ -411,7 +411,7 @@ msgstr "Precio"
 
 #: octoprint_filamentmanager/templates/settings_spooldialog.jinja2:74
 msgid "Temperature offset"
-msgstr "Temperatura"
+msgstr "Compensación de temperatura"
 
 #: octoprint_filamentmanager/templates/sidebar.jinja2:3
 msgid "Hide overused usage"
