@@ -289,6 +289,11 @@ msgid ""
 "PostgreSQL-on-Raspbian-(Stretch)\" target=\"newTab\">wiki</a> how to "
 "install the drivers and setup the database."
 msgstr ""
+"Si quieres usar una base de datos externa, por favor, mira mi <a "
+"href=\"https://github.com/OllisGit/OctoPrint-FilamentManager/wiki/Setup-"
+"PostgreSQL-on-Raspbian-(Stretch)\" target=\"newTab\">wiki</a> sobre como "
+"instalar los drivers y configurar la base de datos."
+
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:84
 msgid "URI"
@@ -409,8 +414,8 @@ msgid "Temperature offset"
 msgstr "Temperatura"
 
 #: octoprint_filamentmanager/templates/sidebar.jinja2:3
-msgid "hide overused usage"
-msgstr ""
+msgid "Hide overused usage"
+msgstr "Ocultar bobinas agotadas"
 
 #: octoprint_filamentmanager/templates/sidebar.jinja2:10
 #: octoprint_filamentmanager/templates/spool_confirmation.jinja2:18
