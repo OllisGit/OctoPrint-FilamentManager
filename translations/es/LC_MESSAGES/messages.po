@@ -182,7 +182,7 @@ msgstr "Material (Ascendente)"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:25
 msgid "Vendor (ascending)"
-msgstr "Vendedor (Ascendente)"
+msgstr "Fabricante (Ascendente)"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:26
 msgid "Remaining (descending)"
@@ -201,7 +201,7 @@ msgstr "Material"
 #: octoprint_filamentmanager/templates/settings.jinja2:38
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:26
 msgid "Vendor"
-msgstr "Vendedor"
+msgstr "Fabricante"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:39
 #: octoprint_filamentmanager/templates/settings_spooldialog.jinja2:50
@@ -370,7 +370,7 @@ msgstr "Guardar perfil"
 
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:30
 msgid "Vendor must be set"
-msgstr "Debes escribir el vendedor"
+msgstr "Debes escribir el fabricante"
 
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:42
 msgid "Material must be set"
