@@ -3,14 +3,15 @@
 # This file is distributed under the same license as the
 # OctoPrint-FilamentManager project.
 # Ivan Garcia <ivan.garcia@studio-point.com>, 2019.
+# Carlos Romero <deses12@gmail.com>, 2021.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: OctoPrint-FilamentManager 0.5.2\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
 "POT-Creation-Date: 2021-10-17 11:30+0200\n"
-"PO-Revision-Date: 2019-05-06 11:31+0100\n"
-"Last-Translator: Ivan Garcia <ivan.garcia@studio-point.com>\n"
+"PO-Revision-Date: 2021-10-18 12:35+0100\n"
+"Last-Translator: Carlos Romero <deses12@gmail.com>\n"
 "Language: es\n"
 "Language-Team: es <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
