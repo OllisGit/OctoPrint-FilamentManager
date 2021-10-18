@@ -141,7 +141,7 @@ msgstr "¿Borrar bobina?"
 
 #: octoprint_filamentmanager/static/js/filamentmanager.bundled.js:948
 msgid "You are about to delete the filament spool <strong> -  ()</strong>."
-msgstr "Estás apunto de borrar la bobina de filamento <strong> -  ()</strong>."
+msgstr "Estás a punto de borrar la bobina de filamento <strong> -  ()</strong>."
 
 #: octoprint_filamentmanager/static/js/filamentmanager.bundled.js:1020
 msgid "Insufficient filament"
@@ -152,7 +152,7 @@ msgid ""
 "The current print job needs more material than what's left on the "
 "selected spool."
 msgstr ""
-"La impresión actual necesita mas filamento del que hay en la bobina "
+"La impresión actual necesita más filamento del que hay en la bobina "
 "seleccionada."
 
 #: octoprint_filamentmanager/templates/settings.jinja2:4
@@ -338,7 +338,7 @@ msgstr "No parece un fichero de importación valido. Sólo se permiten archivos 
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:144
 msgid "Currency symbol"
-msgstr "Simbolo de moneda"
+msgstr "Símbolo de moneda"
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:156
 #: octoprint_filamentmanager/templates/settings_spooldialog.jinja2:87
