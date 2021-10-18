@@ -166,7 +166,7 @@ msgstr "Bobinas de filamento"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:13
 msgid "Items per page"
-msgstr "Objetos por página"
+msgstr "Elementos por página"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:22
 msgid "Sort by"
@@ -272,7 +272,7 @@ msgstr "Habilitar medición mediante software \"odometer\""
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:50
 msgid "Pause print if filament runs out"
-msgstr "Pausar la impresión si el filamento se gasta"
+msgstr "Pausar la impresión si el filamento se agota"
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:56
 msgid "Pause threshold"
@@ -312,7 +312,7 @@ msgid ""
 "instance for the changes to take affect."
 msgstr ""
 "Nota: Si cambias esta configuración deberás reiniciar la instancia de "
-"OctoPrint para que los cambios hagan efecto."
+"OctoPrint para que los cambios tengan efecto."
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:122
 msgid "Import & Export"
@@ -334,7 +334,7 @@ msgstr "Exportar"
 msgid ""
 "This does not look like a valid import archive. Only zip files are "
 "supported."
-msgstr "No parece un fichero de importación valido. Sólo se permiten archivos ZIP."
+msgstr "No parece un fichero de importación válido. Sólo se permiten archivos zip."
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:144
 msgid "Currency symbol"
@@ -433,7 +433,7 @@ msgid ""
 "it's loaded correctly."
 msgstr ""
 "No hay información disponible sobre el extrusor de la impresión actual. "
-"Asegúrate de que el proceso de análisis esté finalizado y se haya cargado"
+"Asegúrate de que el proceso de análisis esté finalizado y haya cargado"
 " correctamente."
 
 #: octoprint_filamentmanager/templates/spool_confirmation.jinja2:14
@@ -442,6 +442,6 @@ msgid ""
 "meant to protect you from accidentically selecting wrong spools for the "
 "print."
 msgstr ""
-"Por favor, confirma las bobinas de los extrusores. Este dialogo está "
-"preparado para evitar que elijas bobinas incorrectas de forma accidental."
+"Por favor, confirma las bobinas seleccionadas para todos los extrusores activos. Este diálogo está "
+"pensado para evitar que elijas bobinas incorrectas para esta impresión."
 
