@@ -158,7 +158,7 @@ msgstr ""
 #: octoprint_filamentmanager/templates/settings.jinja2:4
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:5
 msgid "Plugin Configuration"
-msgstr "Configuración del Plugin"
+msgstr "Configuración del plugin"
 
 #: octoprint_filamentmanager/templates/settings.jinja2:7
 msgid "Filament Spools"
@@ -316,7 +316,7 @@ msgstr ""
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:122
 msgid "Import & Export"
-msgstr "Importar & Exportar"
+msgstr "Importar y exportar"
 
 #: octoprint_filamentmanager/templates/settings_configdialog.jinja2:127
 msgid "Browse..."
@@ -354,11 +354,11 @@ msgstr "Guardar"
 
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:5
 msgid "Filament Profiles"
-msgstr "Perfiles de Filamento"
+msgstr "Perfiles de filamento"
 
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:13
 msgid "--- New Profile ---"
-msgstr "--- Nuevo Perfil ---"
+msgstr "--- Nuevo perfil ---"
 
 #: octoprint_filamentmanager/templates/settings_profiledialog.jinja2:14
 msgid "New"
@@ -420,7 +420,7 @@ msgstr "Extrusor"
 #: octoprint_filamentmanager/templates/sidebar.jinja2:19
 #: octoprint_filamentmanager/templates/spool_confirmation.jinja2:19
 msgid "--- Select Spool ---"
-msgstr "--- Seleccionar Bobina ---"
+msgstr "--- Seleccionar bobina ---"
 
 #: octoprint_filamentmanager/templates/spool_confirmation.jinja2:5
 msgid "Confirm your selected spools"
