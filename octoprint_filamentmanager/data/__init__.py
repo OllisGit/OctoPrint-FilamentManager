@@ -232,7 +232,7 @@ class FilamentManager(object):
             j = self.spools.join(self.profiles, self.spools.c.profile_id == self.profiles.c.id)
             stmt = select([self.spools, self.profiles]).select_from(j).order_by(self.spools.c.name)
             result = self.conn.execute(stmt)
-        return [self._build_spool_dict(row, row.keys()) for row in result.fetchall()]
+        return [self._build_spool_dict(row, tuple(k for k in row.keys())) for row in result.fetchall()]
 
     def get_spools_lastmodified(self):
         with self.lock, self.conn.begin():
@@ -247,7 +247,7 @@ class FilamentManager(object):
                 .where(self.spools.c.id == identifier).order_by(self.spools.c.name)
             result = self.conn.execute(stmt)
         row = result.fetchone()
-        return self._build_spool_dict(row, row.keys()) if row is not None else None
+        return self._build_spool_dict(row, tuple(k for k in row.keys())) if row is not None else None
 
     def create_spool(self, data):
         with self.lock, self.conn.begin():
