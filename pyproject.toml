@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=40"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OctoPrint-FilamentManager"
+version = "1.9.2"
+description = "Manage your spools and keep track of remaining filament on them"
+authors = [
+    { name = "Sven Lohrmann, Olli", email = "ollisgit@gmail.com" },
+]
+license = { text = "AGPLv3" }
+requires-python = ">=3.9"
+dependencies = [
+    "OctoPrint",
+    "uritools>=2.1",
+    "SQLAlchemy>=1.4,<2.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/billygr/OctoPrint-FilamentManager"
+
+[project.entry-points."octoprint.plugin"]
+filamentmanager = "octoprint_filamentmanager"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["octoprint_filamentmanager*"]
+
+[tool.setuptools.package-data]
+"octoprint_filamentmanager" = [
+    "templates/**/*",
+    "static/**/*",
+    "translations/**/*",
+]

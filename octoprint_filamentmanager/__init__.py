@@ -430,6 +430,14 @@ class FilamentManagerPlugin(FilamentManagerApi,
 
         self._logger.debug("Updated thresholds: {thresholds}".format(thresholds=str(self.pauseThresholds)))
 
+    # Blueprint config
+
+    def is_blueprint_autoescaped(self):
+        return True
+
+    def is_blueprint_csrf_protected(self):
+        return True
+
     # Softwareupdate hook
 
     def get_update_information(self):
@@ -452,7 +460,7 @@ class FilamentManagerPlugin(FilamentManagerApi,
 
 
 __plugin_name__ = "Filament Manager"
-__plugin_pythoncompat__ = ">=2.7,<4"
+__plugin_pythoncompat__ = ">=3.9,<4"
 __required_octoprint_version__ = ">=1.3.6"
 
 

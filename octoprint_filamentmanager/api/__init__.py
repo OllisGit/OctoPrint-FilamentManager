@@ -15,7 +15,6 @@ from werkzeug.exceptions import BadRequest
 
 import octoprint.plugin
 from octoprint.settings import valid_boolean_trues
-from octoprint.server import admin_permission
 from octoprint.access.permissions import Permissions
 from octoprint.server.util.flask import restricted_access, check_lastmodified, check_etag
 from octoprint.util import dict_merge
