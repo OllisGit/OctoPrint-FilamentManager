@@ -4,19 +4,18 @@ __author__ = "Sven Lohrmann <malnvenshorn@gmail.com>"
 __license__ = "GNU Affero General Public License http://www.gnu.org/licenses/agpl.html"
 __copyright__ = "Copyright (C) 2017 Sven Lohrmann - Released under terms of the AGPLv3 License"
 
+import csv
 import io
 import os
 from multiprocessing import Lock
+from urllib.parse import urlsplit
 
-from backports import csv
-from uritools import urisplit
+from sqlalchemy import create_engine, event, func, text
 from sqlalchemy.engine.url import URL
-from sqlalchemy import create_engine, event, text
 from sqlalchemy.schema import MetaData, Table, Column, ForeignKeyConstraint, DDL, PrimaryKeyConstraint
-from sqlalchemy.sql import insert, update, delete, select, label
+from sqlalchemy.sql import insert, update, delete, select
 from sqlalchemy.types import INTEGER, VARCHAR, REAL, TIMESTAMP
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-import sqlalchemy.sql.functions as func
 
 from .listen import PGNotify
 
@@ -39,25 +38,30 @@ class FilamentManager(object):
         # when using a connection pool how do we prevent notifiying ourself on database changes?
         self.lock = Lock()
 
-        if self.engine_dialect_is(self.DIALECT_SQLITE):
-            # Enable foreign key constraints
-            self.conn.execute(text("PRAGMA foreign_keys = ON").execution_options(autocommit=True))
-        elif self.engine_dialect_is(self.DIALECT_POSTGRESQL):
+        if self.engine_dialect_is(self.DIALECT_POSTGRESQL):
             # Create listener thread
             self.notify = PGNotify(self.conn.engine.url)
 
     def connect(self, uri, database="", username="", password=""):
-        uri_parts = urisplit(uri)
+        uri_parts = urlsplit(uri)
 
         if uri_parts.scheme == self.DIALECT_SQLITE:
             engine = create_engine(uri, connect_args={"check_same_thread": False})
+
+            @event.listens_for(engine, "connect")
+            def enable_foreign_keys(dbapi_connection, connection_record):
+                # Enable foreign key constraints, must be set on each new connection outside of a transaction
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys = ON")
+                cursor.close()
+
         elif uri_parts.scheme == self.DIALECT_POSTGRESQL:
-            uri = URL(drivername=uri_parts.scheme,
-                      host=uri_parts.host,
-                      port=uri_parts.getport(default=5432),
-                      database=database,
-                      username=username,
-                      password=password)
+            uri = URL.create(drivername=uri_parts.scheme,
+                             host=uri_parts.hostname,
+                             port=uri_parts.port or 5432,
+                             database=database,
+                             username=username,
+                             password=password)
             engine = create_engine(uri)
         else:
             raise ValueError("Engine '{engine}' not supported".format(engine=uri_parts.scheme))
@@ -106,56 +110,59 @@ class FilamentManager(object):
                                    Column("changed_at", TIMESTAMP, nullable=False,
                                           server_default=text("CURRENT_TIMESTAMP")))
 
-        if self.engine_dialect_is(self.DIALECT_POSTGRESQL):
-            def should_create_function(name):
-                row = self.conn.execute("select proname from pg_proc where proname = '%s'" % name).scalar()
-                return not bool(row)
+        with self.lock, self.conn.begin():
+            if self.engine_dialect_is(self.DIALECT_POSTGRESQL):
+                def should_create_function(name):
+                    row = self.conn.execute(text("select proname from pg_proc where proname = :name"),
+                                            {"name": name}).scalar()
+                    return not bool(row)
 
-            def should_create_trigger(name):
-                row = self.conn.execute("select tgname from pg_trigger where tgname = '%s'" % name).scalar()
-                return not bool(row)
+                def should_create_trigger(name):
+                    row = self.conn.execute(text("select tgname from pg_trigger where tgname = :name"),
+                                            {"name": name}).scalar()
+                    return not bool(row)
 
-            trigger_function = DDL("""
-                                   CREATE FUNCTION update_lastmodified()
-                                   RETURNS TRIGGER AS $func$
-                                   BEGIN
-                                       INSERT INTO modifications (table_name, action, changed_at)
-                                       VALUES(TG_TABLE_NAME, TG_OP, CURRENT_TIMESTAMP)
-                                       ON CONFLICT (table_name) DO UPDATE
-                                       SET action=TG_OP, changed_at=CURRENT_TIMESTAMP
-                                       WHERE modifications.table_name=TG_TABLE_NAME;
-                                       PERFORM pg_notify(TG_TABLE_NAME, TG_OP);
-                                       RETURN NULL;
-                                   END;
-                                   $func$ LANGUAGE plpgsql;
-                                   """)
+                trigger_function = DDL("""
+                                       CREATE FUNCTION update_lastmodified()
+                                       RETURNS TRIGGER AS $func$
+                                       BEGIN
+                                           INSERT INTO modifications (table_name, action, changed_at)
+                                           VALUES(TG_TABLE_NAME, TG_OP, CURRENT_TIMESTAMP)
+                                           ON CONFLICT (table_name) DO UPDATE
+                                           SET action=TG_OP, changed_at=CURRENT_TIMESTAMP
+                                           WHERE modifications.table_name=TG_TABLE_NAME;
+                                           PERFORM pg_notify(TG_TABLE_NAME, TG_OP);
+                                           RETURN NULL;
+                                       END;
+                                       $func$ LANGUAGE plpgsql;
+                                       """)
 
-            if should_create_function("update_lastmodified"):
-                event.listen(metadata, "after_create", trigger_function)
+                if should_create_function("update_lastmodified"):
+                    event.listen(metadata, "after_create", trigger_function)
 
-            for table in [self.profiles.name, self.spools.name]:
-                for action in ["INSERT", "UPDATE", "DELETE"]:
-                    name = "{table}_on_{action}".format(table=table, action=action.lower())
-                    trigger = DDL("""
-                                  CREATE TRIGGER {name} AFTER {action} on {table}
-                                  FOR EACH ROW EXECUTE PROCEDURE update_lastmodified()
-                                  """.format(name=name, table=table, action=action))
-                    if should_create_trigger(name):
+                for table in [self.profiles.name, self.spools.name]:
+                    for action in ["INSERT", "UPDATE", "DELETE"]:
+                        name = "{table}_on_{action}".format(table=table, action=action.lower())
+                        trigger = DDL("""
+                                      CREATE TRIGGER {name} AFTER {action} on {table}
+                                      FOR EACH ROW EXECUTE PROCEDURE update_lastmodified()
+                                      """.format(name=name, table=table, action=action))
+                        if should_create_trigger(name):
+                            event.listen(metadata, "after_create", trigger)
+
+            elif self.engine_dialect_is(self.DIALECT_SQLITE):
+                for table in [self.profiles.name, self.spools.name]:
+                    for action in ["INSERT", "UPDATE", "DELETE"]:
+                        name = "{table}_on_{action}".format(table=table, action=action.lower())
+                        trigger = DDL("""
+                                      CREATE TRIGGER IF NOT EXISTS {name} AFTER {action} on {table}
+                                      FOR EACH ROW BEGIN
+                                          REPLACE INTO modifications (table_name, action) VALUES ('{table}','{action}');
+                                      END
+                                      """.format(name=name, table=table, action=action))
                         event.listen(metadata, "after_create", trigger)
 
-        elif self.engine_dialect_is(self.DIALECT_SQLITE):
-            for table in [self.profiles.name, self.spools.name]:
-                for action in ["INSERT", "UPDATE", "DELETE"]:
-                    name = "{table}_on_{action}".format(table=table, action=action.lower())
-                    trigger = DDL("""
-                                  CREATE TRIGGER IF NOT EXISTS {name} AFTER {action} on {table}
-                                  FOR EACH ROW BEGIN
-                                      REPLACE INTO modifications (table_name, action) VALUES ('{table}','{action}');
-                                  END
-                                  """.format(name=name, table=table, action=action))
-                    event.listen(metadata, "after_create", trigger)
-
-        metadata.create_all(self.conn, checkfirst=True)
+            metadata.create_all(self.conn, checkfirst=True)
 
     def execute_script(self, script):
         with self.lock, self.conn.begin():
@@ -166,7 +173,7 @@ class FilamentManager(object):
 
     def get_schema_version(self):
         with self.lock, self.conn.begin():
-            return self.conn.execute(select([func.max(self.versioning.c.schema_id)])).scalar()
+            return self.conn.execute(select(func.max(self.versioning.c.schema_id))).scalar()
 
     def set_schema_version(self, version):
         with self.lock, self.conn.begin():
@@ -177,21 +184,21 @@ class FilamentManager(object):
 
     def get_all_profiles(self):
         with self.lock, self.conn.begin():
-            stmt = select([self.profiles]).order_by(self.profiles.c.material, self.profiles.c.vendor)
+            stmt = select(self.profiles).order_by(self.profiles.c.material, self.profiles.c.vendor)
             result = self.conn.execute(stmt)
-        return self._result_to_dict(result)
+            return self._result_to_dict(result)
 
     def get_profiles_lastmodified(self):
         with self.lock, self.conn.begin():
-            stmt = select([self.modifications.c.changed_at]).where(self.modifications.c.table_name == "profiles")
+            stmt = select(self.modifications.c.changed_at).where(self.modifications.c.table_name == "profiles")
             return self.conn.execute(stmt).scalar()
 
     def get_profile(self, identifier):
         with self.lock, self.conn.begin():
-            stmt = select([self.profiles]).where(self.profiles.c.id == identifier)\
+            stmt = select(self.profiles).where(self.profiles.c.id == identifier)\
                 .order_by(self.profiles.c.material, self.profiles.c.vendor)
             result = self.conn.execute(stmt)
-        return self._result_to_dict(result, one=True)
+            return self._result_to_dict(result, one=True)
 
     def create_profile(self, data):
         with self.lock, self.conn.begin():
@@ -199,7 +206,7 @@ class FilamentManager(object):
                 .values(vendor=data["vendor"], material=data["material"], density=data["density"],
                         diameter=data["diameter"])
             result = self.conn.execute(stmt)
-        data["id"] = result.lastrowid
+            data["id"] = result.inserted_primary_key[0]
         return data
 
     def update_profile(self, identifier, data):
@@ -230,24 +237,25 @@ class FilamentManager(object):
     def get_all_spools(self):
         with self.lock, self.conn.begin():
             j = self.spools.join(self.profiles, self.spools.c.profile_id == self.profiles.c.id)
-            stmt = select([self.spools, self.profiles]).select_from(j).order_by(self.spools.c.name)
+            stmt = select(self.spools, self.profiles).select_from(j).order_by(self.spools.c.name)
             result = self.conn.execute(stmt)
-        return [self._build_spool_dict(row, row.keys()) for row in result.fetchall()]
+            column_names = self._column_names(self.spools, self.profiles)
+            return [self._build_spool_dict(row, column_names) for row in result.fetchall()]
 
     def get_spools_lastmodified(self):
         with self.lock, self.conn.begin():
-            stmt = select([func.max(self.modifications.c.changed_at)])\
+            stmt = select(func.max(self.modifications.c.changed_at))\
                 .where(self.modifications.c.table_name.in_(["spools", "profiles"]))
             return self.conn.execute(stmt).scalar()
 
     def get_spool(self, identifier):
         with self.lock, self.conn.begin():
             j = self.spools.join(self.profiles, self.spools.c.profile_id == self.profiles.c.id)
-            stmt = select([self.spools, self.profiles]).select_from(j)\
+            stmt = select(self.spools, self.profiles).select_from(j)\
                 .where(self.spools.c.id == identifier).order_by(self.spools.c.name)
-            result = self.conn.execute(stmt)
-        row = result.fetchone()
-        return self._build_spool_dict(row, row.keys()) if row is not None else None
+            row = self.conn.execute(stmt).fetchone()
+        column_names = self._column_names(self.spools, self.profiles)
+        return self._build_spool_dict(row, column_names) if row is not None else None
 
     def create_spool(self, data):
         with self.lock, self.conn.begin():
@@ -255,7 +263,7 @@ class FilamentManager(object):
                 .values(name=data["name"], cost=data["cost"], weight=data["weight"], used=data["used"],
                         temp_offset=data["temp_offset"], profile_id=data["profile"]["id"])
             result = self.conn.execute(stmt)
-        data["id"] = result.lastrowid
+            data["id"] = result.inserted_primary_key[0]
         return data
 
     def update_spool(self, identifier, data):
@@ -290,24 +298,24 @@ class FilamentManager(object):
         with self.lock, self.conn.begin():
             j1 = self.selections.join(self.spools, self.selections.c.spool_id == self.spools.c.id)
             j2 = j1.join(self.profiles, self.spools.c.profile_id == self.profiles.c.id)
-            stmt = select([self.selections, self.spools, self.profiles]).select_from(j2)\
+            stmt = select(self.selections, self.spools, self.profiles).select_from(j2)\
                 .where(self.selections.c.client_id == client_id).order_by(self.selections.c.tool)
-        result = self.conn.execute(stmt)
-        return [self._build_selection_dict(row, row.keys()) for row in result.fetchall()]
+            result = self.conn.execute(stmt)
+            column_names = self._column_names(self.selections, self.spools, self.profiles)
+            return [self._build_selection_dict(row, column_names) for row in result.fetchall()]
 
     def get_selection(self, identifier, client_id):
         with self.lock, self.conn.begin():
             j1 = self.selections.join(self.spools, self.selections.c.spool_id == self.spools.c.id)
             j2 = j1.join(self.profiles, self.spools.c.profile_id == self.profiles.c.id)
-            stmt = select([self.selections, self.spools, self.profiles]).select_from(j2)\
+            stmt = select(self.selections, self.spools, self.profiles).select_from(j2)\
                 .where((self.selections.c.tool == identifier) & (self.selections.c.client_id == client_id))
-        result = self.conn.execute(stmt)
-        row = result.fetchone()
-        return self._build_selection_dict(row, row.keys()) if row is not None else dict(tool=identifier, spool=None)
+            row = self.conn.execute(stmt).fetchone()
+        column_names = self._column_names(self.selections, self.spools, self.profiles)
+        return self._build_selection_dict(row, column_names) if row is not None else dict(tool=identifier, spool=None)
 
     def update_selection(self, identifier, client_id, data):
         with self.lock, self.conn.begin():
-            values = dict()
             if self.engine_dialect_is(self.DIALECT_SQLITE):
                 stmt = insert(self.selections).prefix_with("OR REPLACE")\
                     .values(tool=identifier, client_id=client_id, spool_id=data["spool"]["id"])
@@ -321,9 +329,9 @@ class FilamentManager(object):
     def export_data(self, dirpath):
         def to_csv(table):
             with self.lock, self.conn.begin():
-                result = self.conn.execute(select([table]))
+                result = self.conn.execute(select(table))
                 filepath = os.path.join(dirpath, table.name + ".csv")
-                with io.open(filepath, mode="w", encoding="utf-8") as csv_file:
+                with io.open(filepath, mode="w", encoding="utf-8", newline="") as csv_file:
                     csv_writer = csv.writer(csv_file)
                     csv_writer.writerow(table.columns.keys())
                     csv_writer.writerows(result)
@@ -335,7 +343,7 @@ class FilamentManager(object):
     def import_data(self, dirpath):
         def from_csv(table):
             filepath = os.path.join(dirpath, table.name + ".csv")
-            with io.open(filepath, mode="r", encoding="utf-8") as csv_file:
+            with io.open(filepath, mode="r", encoding="utf-8", newline="") as csv_file:
                 csv_reader = csv.reader(csv_file)
                 header = next(csv_reader)
                 with self.lock, self.conn.begin():
@@ -366,9 +374,15 @@ class FilamentManager(object):
 
     # helper
 
+    @staticmethod
+    def _column_names(*tables):
+        # Result keys can't be used for joined selects, since SQLAlchemy >= 1.4 renames
+        # duplicate column names (e.g. the "id" of profiles becomes "id_1")
+        return [column.name for table in tables for column in table.columns]
+
     def _result_to_dict(self, result, one=False):
         if one:
             row = result.fetchone()
-            return dict(row) if row is not None else None
+            return dict(row._mapping) if row is not None else None
         else:
-            return [dict(row) for row in result.fetchall()]
+            return [dict(row._mapping) for row in result.fetchall()]

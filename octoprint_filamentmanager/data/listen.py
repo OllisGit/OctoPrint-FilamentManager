@@ -14,9 +14,10 @@ class PGNotify(object):
     def __init__(self, uri):
         self.subscriber = list()
 
-        engine = create_engine(uri)
+        # LISTEN only takes effect once committed, so use an autocommit connection
+        engine = create_engine(uri, isolation_level="AUTOCOMMIT")
         conn = engine.connect()
-        conn.execute(text("LISTEN profiles; LISTEN spools;").execution_options(autocommit=True))
+        conn.execute(text("LISTEN profiles; LISTEN spools;"))
 
         notify_thread = Thread(target=self.notify, args=(conn,))
         notify_thread.daemon = True
