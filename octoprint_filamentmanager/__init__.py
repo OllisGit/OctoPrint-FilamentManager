@@ -88,8 +88,8 @@ class FilamentManagerPlugin(FilamentManagerApi,
                     schema_version = 1
                 else:
                     # migrate schema version from config.yaml
-                    schema_version = self._settings.getInt(["_db_version"])
-                self._logger.warn("No schema_id found in database, setting id to %s" % schema_version)
+                    schema_version = self._settings.get_int(["_db_version"])
+                self._logger.warning("No schema_id found in database, setting id to %s" % schema_version)
                 self.filamentManager.set_schema_version(schema_version)
 
             # migrate database schema if needed
@@ -194,11 +194,11 @@ class FilamentManagerPlugin(FilamentManagerApi,
 
     def on_settings_save(self, data):
         # before saving
-        old_threshold = self._settings.getFloat(["pauseThreshold"])
+        old_threshold = self._settings.get_float(["pauseThreshold"])
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
         # after saving
-        if old_threshold != self._settings.getFloat(["pauseThreshold"]):
+        if old_threshold != self._settings.get_float(["pauseThreshold"]):
             # if the threshold settings has been modified
             # we have to recalculate the pause thresholds
             self.update_pause_thresholds()
@@ -350,7 +350,7 @@ class FilamentManagerPlugin(FilamentManagerApi,
 
                 if spool is None:
                     # spool not found => skip
-                    self._logger.warn("No selected spool for tool{id}".format(id=tool))
+                    self._logger.warning("No selected spool for tool{id}".format(id=tool))
                     continue
 
                 # update spool
@@ -404,7 +404,7 @@ class FilamentManagerPlugin(FilamentManagerApi,
                 radius = spool["profile"]["diameter"] / 2
                 volume = (spool["weight"] - spool["used"]) / spool["profile"]["density"]
                 length = (volume * 1000) / (PI * radius * radius)
-                return length - self._settings.getFloat(["pauseThreshold"])
+                return length - self._settings.get_float(["pauseThreshold"])
 
             try:
                 spool = selection["spool"]
@@ -412,7 +412,7 @@ class FilamentManagerPlugin(FilamentManagerApi,
                     self.pauseThresholds["tool%s" % selection["tool"]] = threshold(spool)
             except ZeroDivisionError:
                 tool = selection["tool"]
-                self._logger.warn("ZeroDivisionError while calculating pause threshold for tool{tool}, "
+                self._logger.warning("ZeroDivisionError while calculating pause threshold for tool{tool}, "
                                   "pause feature not available for selected spool".format(tool=tool))
 
         self.pauseThresholds = dict()
@@ -452,7 +452,7 @@ class FilamentManagerPlugin(FilamentManagerApi,
 
 
 __plugin_name__ = "Filament Manager"
-__plugin_pythoncompat__ = ">=2.7,<4"
+__plugin_pythoncompat__ = ">=3.7,<4"
 __required_octoprint_version__ = ">=1.3.6"
 
 
